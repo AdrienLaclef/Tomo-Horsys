@@ -59,9 +59,13 @@ function injectStyle() {
     style.id = 'tomo-mouvements-style';
     style.textContent = `
         .StatutJour .tomo-mov-block {
-            line-height: 1.4;
             font-size: 0.85em;
-            padding: 4px 0;
+            line-height: 1.4;
+        }
+
+        .StatutJour .tomo-mov-block div {
+            font-size: 0.85em;
+            font-weight: normal;
         }
     `;
     document.documentElement.appendChild(style);
@@ -116,7 +120,7 @@ function renderDay(core, day) {
     // Affichage
 	let html = `
         <div class="tomo-mov-block">
-            <div><b>Travaillé :</b> ${core.minutesToTime(state.worked)}</div>
+            <div>Travaillé : ${core.minutesToTime(state.worked)}</div>
     `;
 
     // Cas 1 : journée avec suffisamment de données (>= 4 pointages) --> affichage du crédit réel
