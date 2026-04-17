@@ -23,9 +23,10 @@ if (window.top !== window) return;
 // Le module attend que TOMO_CORE soit chargé, puis s'enregistre dans l'architecture modulaire.
 const waitCore = setInterval(() => {
     const core = window.TOMO_CORE;
+	// Enregistrement du module
     if (core && typeof core.registerModule === 'function') {
         clearInterval(waitCore);
-        // Enregistrement du module
+
         core.registerModule({
             name: 'tomo-panel',
 
@@ -301,7 +302,8 @@ function updatePanel(core, p) {
 // =======================================================
 // Récupère les pointages et met à jour le panel périodiquement.
 function startPanelLoop(core) {
-    if (panelTimer) return;
+    // Sécurité : empêche le lancement multiple du module
+	if (panelTimer) return;
 
     const tick = () => {
         ensurePanel();
@@ -327,7 +329,8 @@ function startPanelLoop(core) {
         panelTimer = setInterval(tick, core.config.refreshRate);
     };
 
-    if (document.readyState === 'loading') {
+    // Attente du chargement complet du DOM
+	if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', start, { once: true });
     } else {
         start();
