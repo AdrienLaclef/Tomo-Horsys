@@ -14,25 +14,44 @@
 (() => {
 'use strict';
 
+// On évite l'exécution dans certaines iframes. Le panel doit être unique et global. So'Horsys utilisant plusieurs iframes, cela évite les doublons.
 if (window.top !== window) return;
 
+// =======================================================
+// ATTENTE DU CORE
+// =======================================================
+// Le module attend que TOMO_CORE soit chargé, puis s'enregistre dans l'architecture modulaire.
 const waitCore = setInterval(() => {
     const core = window.TOMO_CORE;
+	// Enregistrement du module
     if (core && typeof core.registerModule === 'function') {
         clearInterval(waitCore);
         core.registerModule({
             name: 'tomo-mouvements',
+
+			// Initialisation du module
             init(core) {
+				// Injection CSS
                 injectStyle();
+				// Lancement boucle principale
                 startMouvementsLoop(core);
             },
+			// run non utilisé ici : le panel possède sa propre boucle interne
             run() {}
         });
     }
 }, 50);
 
+// =======================================================
+// CONSTANTES
+// =======================================================
+// Timer de rafraîchissement
 let mouvTimer = null;
 
+// =======================================================
+// STYLES
+// =======================================================
+// Injection du CSS dynamique pour améliorer l'affichage.
 function injectStyle() {
     if (document.getElementById('tomo-mouvements-style')) return;
 
@@ -48,68 +67,74 @@ function injectStyle() {
     document.documentElement.appendChild(style);
 }
 
-function startMouvementsLoop(core) {
-    if (mouvTimer) return;
-
-    const tick = () => processMouvements(core);
-
-    const start = () => {
-        tick();
-        mouvTimer = setInterval(tick, core.config.refreshRate);
-    };
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start, { once: true });
-    } else {
-        start();
-    }
-}
-
+// =======================================================
+// TRAITEMENT DES JOURNÉES
+// =======================================================
+// Parcourt toutes les lignes de l'historique et applique l'affichage
 function processMouvements(core) {
-    const doc = core.getMouvDoc();
+    // Récupération de l’iframe "Mes mouvements"
+	const doc = core.getMouvDoc();
     if (!doc) return;
 
-    const days = doc.querySelectorAll('#CtnListGraphDay li');
+    // Liste des jours affichés dans l’historique
+	const days = doc.querySelectorAll('#CtnListGraphDay li');
     if (!days.length) return;
 
-    days.forEach(day => renderDay(core, day));
+    // Traitement individuel de chaque jour
+	days.forEach(day => renderDay(core, day));
 }
 
+// =======================================================
+// NETTOYAGE VISUEL
+// =======================================================
+// Supprime les icônes inutiles et les redondantes
 function removeNoise(day) {
     day.querySelectorAll('.IconStatutJour.imgStatutHistorise')
         .forEach(el => el.remove());
 }
 
+// =======================================================
+// RENDU D'UN JOUR
+// =======================================================
+// Calcule et affiche les informations de temps pour un jour donné
 function renderDay(core, day) {
-    const label = day.querySelector('.StatutJour');
+    // Zone d'affichage principale du jour
+	const label = day.querySelector('.StatutJour');
     if (!label) return;
 
-    removeNoise(day);
+    // Nettoyage visuel des éléments parasites
+	removeNoise(day);
 
-    const p = core.getPointages(day);
+    // Extraction des pointages du jour
+	const p = core.getPointages(day);
     if (!p.length) return;
 
-    const state = core.getTimeState(p, core.config.target);
+    // Calcul centralisé (travail, crédit, état, etc.)
+	const state = core.getTimeState(p, core.config.target);
     if (!state) return;
 
-    let html = `
+    // Affichage
+	let html = `
         <div class="tomo-mov-block">
             <div><b>Travaillé :</b> ${core.minutesToTime(state.worked)}</div>
     `;
 
-    if (p.length >= 4) {
+    // Cas 1 : journée avec suffisamment de données (>= 4 pointages) --> affichage du crédit réel
+	if (p.length >= 4) {
         html += `
             <div style="color:${state.isOvertime ? core.colors.green : core.colors.red}">
                 Crédit : ${core.minutesToTime(state.credit)}
             </div>
         `;
+	// Cas 2 : estimation possible de fin de journée
     } else if (state.finish) {
         html += `
             <div style="color:${core.colors.yellow}; font-weight:600">
                 Fin estimée : ${core.minutesToTime(state.finish)}
             </div>
         `;
-    } else {
+    // Cas 3 : journée encore en cours --> affichage du crédit calculé
+	} else {
         html += `
             <div style="color:${core.colors.green}">
                 Crédit : ${core.minutesToTime(state.credit)}
@@ -119,13 +144,42 @@ function renderDay(core, day) {
 
     html += `</div>`;
 
-    label.innerHTML = html;
+    // Injection dans l’interface existante
+	label.innerHTML = html;
 
-    const timeline = day.querySelector('.gdTimeLineInfo.gdTimeLineInfoRight');
+    // Ajustements de la timeline du jour
+	const timeline = day.querySelector('.gdTimeLineInfo.gdTimeLineInfoRight');
     if (timeline) {
+		// Affichage simplifié du statut temps
         timeline.textContent = `${state.label} = ${state.value}`;
+		// Ajustements du bloc
         timeline.style.marginTop = '23px';
         timeline.style.fontSize = '12px';
+    }
+}
+
+// =======================================================
+// BOUCLE PRINCIPALE
+// =======================================================
+// Récupère les pointages et met à jour l'historique périodiquement.
+function startMouvementsLoop(core) {
+	// Sécurité : empêche le double lancement
+    if (mouvTimer) return;
+
+	const tick = () => processMouvements(core);
+
+    const start = () => {
+		// Première exécution immédiate
+        tick();
+		// Rafraîchissement périodique
+        mouvTimer = setInterval(tick, core.config.refreshRate);
+    };
+
+    // Attente du chargement complet du DOM
+	if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, { once: true });
+    } else {
+        start();
     }
 }
 
