@@ -312,7 +312,7 @@ function startPanelLoop(core) {
         const doc = core.getHbDoc();
         if (!doc) return showNoData();
 
-        // Container pointages
+        // Conteneur principal de la badgeuse
         const container = doc.querySelector('.gdLEnteteMicroCtn');
         if (!container) return showNoData();
 

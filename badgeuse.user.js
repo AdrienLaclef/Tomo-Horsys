@@ -14,62 +14,68 @@
 (() => {
 'use strict';
 
+// On évite l'exécution dans certaines iframes. Le panel doit être unique et global. So'Horsys utilisant plusieurs iframes, cela évite les doublons.
 if (window.top !== window) return;
 
+// =======================================================
+// ATTENTE DU CORE
+// =======================================================
+// Le module attend que TOMO_CORE soit chargé, puis s'enregistre dans l'architecture modulaire.
 const waitCore = setInterval(() => {
     const core = window.TOMO_CORE;
+	// Enregistrement du module
     if (core && core.registerModule) {
         clearInterval(waitCore);
 
         core.registerModule({
             name: 'tomo-badgeuse',
-            init(core){
+
+            // Initialisation du module
+			init(core){
+				// Lancement boucle principale
                 start(core);
             },
+			// run non utilisé ici : le panel possède sa propre boucle interne
             run(){}
         });
     }
 },50);
 
+// =======================================================
+// CONSTANTES
+// =======================================================
+// Timer de rafraîchissement
 let timer = null;
 
-function start(core){
-    if(timer) return;
-
-    const tick = () => openBadgeuse(core);
-
-    const startLoop = () => {
-        tick();
-        timer = setInterval(tick, core.config.refreshRate);
-    };
-
-    if(document.readyState === 'loading'){
-        document.addEventListener('DOMContentLoaded', startLoop, {once:true});
-    }else{
-        startLoop();
-    }
-}
-
+// =======================================================
+// OUVERTURE FORCÉE DE LA BADGEUSE
+// =======================================================
+// Déplie automatiquement la zone de pointage.
 function openBadgeuse(core){
 
-    const doc = core.getHbDoc();
+    // Récupération iframe HBoard
+	const doc = core.getHbDoc();
     if(!doc) return;
 
-    const container = doc.querySelector('.gdLEnteteMicroCtn');
+    // Conteneur principal de la badgeuse
+	const container = doc.querySelector('.gdLEnteteMicroCtn');
     if(!container) return;
 
     if(container.dataset.tomoOpened) return;
 
-    container.dataset.tomoOpened = "1";
+    // exécution unique
+	container.dataset.tomoOpened = "1";
 
-    container.classList.remove('Hidden','hidden');
+    // DÉVERROUILLAGE DU CONTENEUR PRINCIPAL
+	container.classList.remove('Hidden','hidden');
     container.removeAttribute('hidden');
 
     container.style.display = '';
     container.style.visibility = 'visible';
     container.style.opacity = '1';
 
-    doc.querySelectorAll('.UneLigne.Hidden, .UneLigne.hidden, .UneLigne[hidden]')
+    // DÉVERROUILLAGE DES LIGNES DE POINTAGE
+	doc.querySelectorAll('.UneLigne.Hidden, .UneLigne.hidden, .UneLigne[hidden]')
     .forEach(el=>{
         el.classList.remove('Hidden','hidden');
         el.removeAttribute('hidden');
@@ -80,6 +86,31 @@ function openBadgeuse(core){
         el.style.opacity = '1';
     });
 
+}
+
+// =======================================================
+// BOUCLE PRINCIPALE
+// =======================================================
+// Force l’ouverture de la badgeuse
+function start(core){
+	// Sécurité : empêche le lancement multiple du module
+    if(timer) return;
+
+    const tick = () => openBadgeuse(core);
+
+    const startLoop = () => {
+		// Exécution immédiate au démarrage
+        tick();
+		// Rafraîchissement périodique pour gérer les rechargements dynamiques
+        timer = setInterval(tick, core.config.refreshRate);
+    };
+
+    // Attente du chargement complet du DOM
+	if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', startLoop, {once:true});
+    }else{
+        startLoop();
+    }
 }
 
 })();
