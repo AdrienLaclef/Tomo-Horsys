@@ -59,12 +59,10 @@ function injectStyle() {
     style.id = 'tomo-mouvements-style';
     style.textContent = `
         .StatutJour .tomo-mov-block {
-            font-size: 0.85em;
             line-height: 1.4;
         }
 
         .StatutJour .tomo-mov-block div {
-            font-size: 0.85em;
             font-weight: normal;
         }
     `;
