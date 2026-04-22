@@ -114,26 +114,59 @@ function getPointages(day) {
 // =======================================================
 // CALCULS DES TEMPS
 // =======================================================
+
 // Calcule le temps total travaillé sur une journée.
 // On additionne les blocs entrée/sortie, puis on ajoute le temps courant si la journée est encore en cours.
 // Exemple : Entrées --> 08:00 / 12:00 / 13:00 / 17:00. Calcul --> (12:00-08:00) + (17:00-13:00).
+// Applique la pause minimale obligatoire si la pause réelle est < CONFIG.minPause. Le travail n'est pas compté pendant la pause obligatoire.
 function computeWorked(pointages) {
     let worked = 0;
 
-    // Somme des blocs entrée / sortie
-    for (let i = 0; i < pointages.length - 1; i += 2) {
-        worked += pointages[i + 1] - pointages[i];
+    // Cas 0 ou 1 pointage
+    if (!pointages || pointages.length < 2) {
+        return {
+            worked: 0,
+            openWork: pointages.length === 1,
+            onBreak: false
+        };
     }
+
+    // Travail matin
+    worked += pointages[1] - pointages[0];
 
     // Journée encore ouverte : nombre impair de pointages.
     const openWork = (pointages.length % 2 === 1);
 
     // Cas particulier : deux pointages = pause en cours.
     const onBreak = (pointages.length === 2);
+    // =======================================================
+    // GESTION PAUSE
+    // =======================================================
+    let effectiveResume = null;
 
-    // Si on travaille encore, on ajoute le temps entre la dernière entrée et maintenant.
-    if (openWork && !onBreak) {
-        worked += nowMinutes() - pointages[pointages.length - 1];
+    if (pointages.length >= 3) {
+
+        const pauseStart = pointages[1];
+        const pauseEnd = pointages[2];
+
+        const realPause = pauseEnd - pauseStart;
+
+        // Applique pause minimale obligatoire
+        if (realPause < CONFIG.minPause) {
+            effectiveResume = pauseStart + CONFIG.minPause;
+        } else {
+            effectiveResume = pauseEnd;
+        }
+
+        // Ajout travail après pause
+        if (pointages.length >= 4) {
+            worked += pointages[3] - effectiveResume;
+        }
+
+        // Journée en cours après reprise
+        if (openWork && pointages.length >= 3) {
+            worked += nowMinutes() - effectiveResume;
+        }
     }
 
     return { worked, openWork, onBreak };
